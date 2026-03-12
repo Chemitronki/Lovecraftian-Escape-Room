@@ -222,7 +222,7 @@ Este es un proyecto educativo. Si encuentras bugs o tienes sugerencias:
 
 ## 📝 Licencia
 
-Este proyecto es de código abierto para fines educativos.
+Este proyecto es de código abierto creado por Jose Manuel Garcia Seno.
 
 ## 👨‍💻 Autor
 

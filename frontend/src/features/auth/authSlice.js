@@ -31,7 +31,7 @@ export const register = createAsyncThunk(
   'auth/register',
   async (userData, { rejectWithValue }) => {
     try {
-      const response = await axios.post(`${API_URL}/register`, userData);
+      const response = await axios.post(`${API_URL}/auth/register`, userData);
       
       if (response.data.success) {
         const { user, token } = response.data.data;
@@ -62,7 +62,7 @@ export const login = createAsyncThunk(
   'auth/login',
   async (credentials, { rejectWithValue }) => {
     try {
-      const response = await axios.post(`${API_URL}/login`, credentials);
+      const response = await axios.post(`${API_URL}/auth/login`, credentials);
       
       if (response.data.success) {
         const { user, token } = response.data.data;
@@ -100,7 +100,7 @@ export const logout = createAsyncThunk(
       const { token } = getState().auth;
       
       await axios.post(
-        `${API_URL}/logout`,
+        `${API_URL}/auth/logout`,
         {},
         {
           headers: {
@@ -136,7 +136,7 @@ export const fetchUser = createAsyncThunk(
         return rejectWithValue('No hay token de autenticación');
       }
       
-      const response = await axios.get(`${API_URL}/user`, {
+      const response = await axios.get(`${API_URL}/auth/user`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },

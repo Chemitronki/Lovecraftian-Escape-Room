@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import { register } from '../../features/auth/authSlice';
 
 const RegisterForm = () => {
   const dispatch = useDispatch();
-  const { loading, error } = useSelector((state) => state.auth);
+  const { loading, error, isAuthenticated } = useSelector((state) => state.auth);
+  const navigate = useNavigate();
   
   const [formData, setFormData] = useState({
     username: '',
@@ -110,6 +112,13 @@ const RegisterForm = () => {
     
     dispatch(register(formData));
   };
+
+  // Redirect to login after successful registration
+  useEffect(() => {
+    if (isAuthenticated && !loading) {
+      navigate('/login', { replace: true });
+    }
+  }, [isAuthenticated, loading, navigate]);
 
   return (
     <div className="w-full max-w-md mx-auto">

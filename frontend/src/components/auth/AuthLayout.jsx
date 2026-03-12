@@ -39,7 +39,7 @@ const AuthLayout = ({ children, type }) => {
         {/* Footer */}
         <div className="text-center mt-8 text-gray-500 text-xs">
           <p>Inspirado en las obras de H.P. Lovecraft</p>
-          <p className="mt-1">© 2024 Lovecraftian Escape Room</p>
+          <p className="mt-1">© 2026 Lovecraftian Escape Room</p>
         </div>
       </div>
     </div>

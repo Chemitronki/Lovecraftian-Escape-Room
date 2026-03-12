@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import { login } from '../../features/auth/authSlice';
 
 const LoginForm = () => {
   const dispatch = useDispatch();
-  const { loading, error } = useSelector((state) => state.auth);
+  const { loading, error, isAuthenticated } = useSelector((state) => state.auth);
+  const navigate = useNavigate();
   
   const [formData, setFormData] = useState({
     email: '',
@@ -60,6 +62,13 @@ const LoginForm = () => {
     
     dispatch(login(formData));
   };
+
+  // Redirect to game after successful login
+  useEffect(() => {
+    if (isAuthenticated && !loading) {
+      navigate('/game', { replace: true });
+    }
+  }, [isAuthenticated, loading, navigate]);
 
   return (
     <div className="w-full max-w-md mx-auto">
