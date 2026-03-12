@@ -22,7 +22,10 @@ class RankingController extends Controller
      */
     public function getTopPlayers(): JsonResponse
     {
-        $rankings = $this->rankingService->getTopPlayers(100);
+        // Cache for 30 seconds to reduce database load
+        $rankings = cache()->remember('rankings_top_100', 30, function () {
+            return $this->rankingService->getTopPlayers(100);
+        });
 
         $data = $rankings->map(function ($ranking) {
             return [

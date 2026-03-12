@@ -1,20 +1,47 @@
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { startGame, getSession, recoverSession, abandonGame } from '../../features/game/gameSlice';
+import { 
+  startGame, 
+  getSession, 
+  recoverSession, 
+  abandonGame, 
+  getCurrentPuzzle,
+  completeGame 
+} from '../../features/game/gameSlice';
+import { logout } from '../../features/auth/authSlice';
 import Timer from './Timer';
 import ProgressIndicator from './ProgressIndicator';
 import GameOver from './GameOver';
 import Victory from './Victory';
+import PuzzleContainer from './PuzzleContainer';
+import Puzzle from './Puzzle';
+import HintPanel from './HintPanel';
+import Cinematic from '../cinematic/Cinematic';
+import AmbientAudio from '../audio/AmbientAudio';
+import { initSessionTimeout } from '../../utils/sessionTimeout';
+import { setupBeforeUnloadHandler } from '../../utils/statePersistence';
+import SessionTimeoutWarning from '../auth/SessionTimeoutWarning';
 
 const GameBoard = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { session, timeRemaining, isActive, loading, error } = useSelector((state) => state.game);
+  const { 
+    session, 
+    timeRemaining, 
+    isActive, 
+    loading, 
+    error,
+    currentPuzzle,
+    puzzleLoading,
+    completedPuzzles,
+    totalPuzzles 
+  } = useSelector((state) => state.game);
   const { isAuthenticated } = useSelector((state) => state.auth);
   
-  const [puzzlesCompleted, setPuzzlesCompleted] = useState(0);
-  const totalPuzzles = 10;
+  const [showCinematic, setShowCinematic] = useState(false);
+  const [cinematicType, setCinematicType] = useState('opening');
+  const [showTimeoutWarning, setShowTimeoutWarning] = useState(false);
 
   // Check authentication
   useEffect(() => {
@@ -23,24 +50,67 @@ const GameBoard = () => {
     }
   }, [isAuthenticated, navigate]);
 
+  // Initialize session timeout tracking
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const cleanup = initSessionTimeout(
+      () => setShowTimeoutWarning(true),
+      () => {
+        dispatch(logout());
+        navigate('/login');
+      }
+    );
+
+    return cleanup;
+  }, [isAuthenticated, dispatch, navigate]);
+
+  // Handle page reload warning when game is active
+  useEffect(() => {
+    if (!isActive) return;
+    
+    const cleanup = setupBeforeUnloadHandler(true);
+    return cleanup;
+  }, [isActive]);
+
   // Try to recover session from localStorage on mount
   useEffect(() => {
     dispatch(recoverSession());
     
-    // If no session in localStorage, try to fetch from server
     const storedSession = localStorage.getItem('game_session');
     if (!storedSession) {
       dispatch(getSession());
     }
   }, [dispatch]);
 
+  // Load current puzzle when session is active
+  useEffect(() => {
+    if (session?.id && isActive) {
+      dispatch(getCurrentPuzzle(session.id));
+    }
+  }, [session?.id, isActive, dispatch]);
+
+  // Check if all puzzles completed
+  useEffect(() => {
+    if (completedPuzzles === totalPuzzles && isActive) {
+      dispatch(completeGame(timeRemaining));
+    }
+  }, [completedPuzzles, totalPuzzles, isActive, timeRemaining, dispatch]);
+
   // Handle game start
   const handleStartGame = async () => {
     try {
       await dispatch(startGame()).unwrap();
+      setCinematicType('opening');
+      setShowCinematic(true);
     } catch (err) {
       console.error('Error starting game:', err);
     }
+  };
+
+  // Handle cinematic complete
+  const handleCinematicComplete = () => {
+    setShowCinematic(false);
   };
 
   // Handle abandon game
@@ -55,9 +125,42 @@ const GameBoard = () => {
     }
   };
 
+  // Handle puzzle completion
+  const handlePuzzleComplete = () => {
+    // Reload current puzzle (will get next puzzle)
+    if (session?.id) {
+      dispatch(getCurrentPuzzle(session.id));
+    }
+  };
+
+  // Handle session timeout warning
+  const handleExtendSession = () => {
+    setShowTimeoutWarning(false);
+  };
+
+  const handleTimeoutLogout = () => {
+    dispatch(logout());
+    navigate('/login');
+  };
+
+  // Show cinematic
+  if (showCinematic) {
+    return <Cinematic type={cinematicType} onComplete={handleCinematicComplete} />;
+  }
+
+  // Show session timeout warning
+  if (showTimeoutWarning) {
+    return (
+      <SessionTimeoutWarning 
+        onExtend={handleExtendSession}
+        onLogout={handleTimeoutLogout}
+      />
+    );
+  }
+
   // Show game over screen
   if (session?.status === 'timeout' || (timeRemaining === 0 && isActive)) {
-    return <GameOver puzzlesCompleted={puzzlesCompleted} totalPuzzles={totalPuzzles} />;
+    return <GameOver puzzlesCompleted={completedPuzzles} totalPuzzles={totalPuzzles} />;
   }
 
   // Show victory screen
@@ -69,9 +172,9 @@ const GameBoard = () => {
   if (!session || !isActive) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-black flex items-center justify-center p-4">
-        <div className="max-w-2xl w-full bg-gray-900 border-2 border-gray-700 rounded-lg p-8 shadow-2xl">
+        <div className="max-w-2xl w-full bg-gray-900 border-2 border-gray-700 rounded-lg p-8 shadow-2xl fade-in">
           <div className="text-center mb-8">
-            <h1 className="text-5xl font-bold text-green-400 mb-4 font-serif">
+            <h1 className="text-5xl font-bold text-green-400 mb-4 font-serif glitch-text">
               Escape Room Lovecraftiano
             </h1>
             <p className="text-gray-400 text-lg mb-6">
@@ -90,7 +193,7 @@ const GameBoard = () => {
           </div>
 
           {error && (
-            <div className="bg-red-900 border border-red-700 text-red-200 p-4 rounded-lg mb-6">
+            <div className="bg-red-900 border border-red-700 text-red-200 p-4 rounded-lg mb-6 error-shake">
               {error}
             </div>
           )}
@@ -98,7 +201,7 @@ const GameBoard = () => {
           <button
             onClick={handleStartGame}
             disabled={loading}
-            className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white font-bold py-4 px-6 rounded-lg transition-colors duration-200 transform hover:scale-105 disabled:transform-none text-xl"
+            className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white font-bold py-4 px-6 rounded-lg transition-colors duration-200 transform hover:scale-105 disabled:transform-none text-xl touch-target"
           >
             {loading ? 'Iniciando...' : 'Comenzar Juego'}
           </button>
@@ -109,64 +212,65 @@ const GameBoard = () => {
 
   // Main game board
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-black p-4">
-      <div className="max-w-6xl mx-auto">
-        {/* Header with timer and progress */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-          <Timer />
-          <ProgressIndicator 
-            puzzlesCompleted={puzzlesCompleted} 
-            totalPuzzles={totalPuzzles} 
-          />
-        </div>
+    <>
+      <AmbientAudio enabled={isActive} />
+      
+      <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-black p-4">
+        <div className="max-w-6xl mx-auto">
+          {/* Header with timer and progress */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 fade-in">
+            <Timer />
+            <ProgressIndicator 
+              puzzlesCompleted={completedPuzzles} 
+              totalPuzzles={totalPuzzles} 
+            />
+          </div>
 
-        {/* Main game area */}
-        <div className="bg-gray-900 border-2 border-gray-700 rounded-lg p-8 shadow-2xl min-h-[500px]">
-          <div className="text-center">
-            <h2 className="text-3xl font-bold text-white mb-4">
-              Área de Juego
-            </h2>
-            <p className="text-gray-400 mb-8">
-              Los puzzles se cargarán aquí. Por ahora, este es un placeholder.
-            </p>
-            
-            {/* Placeholder for puzzle components */}
-            <div className="bg-gray-800 border-2 border-dashed border-gray-600 rounded-lg p-12 mb-6">
-              <p className="text-gray-500 text-lg">
-                Puzzle {puzzlesCompleted + 1} de {totalPuzzles}
-              </p>
-              <p className="text-gray-600 text-sm mt-2">
-                Los componentes de puzzle se implementarán en las siguientes tareas
-              </p>
-            </div>
+          {/* Main game area */}
+          <div className="bg-gray-900 border-2 border-gray-700 rounded-lg p-8 shadow-2xl min-h-[500px] fade-in">
+            {puzzleLoading ? (
+              <div className="text-center py-12">
+                <div className="loading-spinner mx-auto mb-4"></div>
+                <p className="text-gray-400">Cargando puzzle...</p>
+              </div>
+            ) : currentPuzzle ? (
+              <>
+                <Puzzle 
+                  puzzle={currentPuzzle}
+                  onComplete={handlePuzzleComplete}
+                  disabled={!isActive || timeRemaining === 0}
+                />
+                
+                <HintPanel 
+                  puzzleId={currentPuzzle.id}
+                  timeSpent={currentPuzzle.time_spent || 0}
+                />
+              </>
+            ) : (
+              <div className="text-center py-12">
+                <p className="text-gray-400 text-lg">
+                  No hay puzzles disponibles
+                </p>
+              </div>
+            )}
+          </div>
 
-            {/* Test button to simulate puzzle completion */}
-            <button
-              onClick={() => {
-                if (puzzlesCompleted < totalPuzzles) {
-                  setPuzzlesCompleted(puzzlesCompleted + 1);
-                }
-              }}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg transition-colors duration-200 mr-4"
-            >
-              Simular Completar Puzzle (Test)
-            </button>
-
+          {/* Footer actions */}
+          <div className="mt-6 flex justify-between items-center">
             <button
               onClick={handleAbandonGame}
-              className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded-lg transition-colors duration-200"
+              className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded-lg transition-colors duration-200 touch-target"
             >
               Abandonar Juego
             </button>
+            
+            <p className="text-gray-500 text-sm">
+              Sesión ID: {session?.id}
+            </p>
           </div>
         </div>
-
-        {/* Footer info */}
-        <div className="mt-6 text-center text-gray-500 text-sm">
-          <p>Sesión ID: {session?.id}</p>
-        </div>
       </div>
-    </div>
+    </>
   );
 };
 

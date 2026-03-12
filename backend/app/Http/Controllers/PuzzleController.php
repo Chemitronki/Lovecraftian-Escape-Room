@@ -27,7 +27,7 @@ class PuzzleController extends Controller
     public function getCurrentPuzzle(int $sessionId): JsonResponse
     {
         try {
-            $session = GameSession::findOrFail($sessionId);
+            $session = GameSession::with('user')->findOrFail($sessionId);
 
             // Verify session belongs to authenticated user
             if ($session->user_id !== auth()->id()) {
@@ -92,6 +92,7 @@ class PuzzleController extends Controller
             // Get progress for current puzzle
             $progress = PuzzleProgress::where('game_session_id', $sessionId)
                 ->where('puzzle_id', $currentPuzzle->id)
+                ->with('puzzle')
                 ->first();
 
             // Calculate time spent

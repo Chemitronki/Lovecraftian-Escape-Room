@@ -60,6 +60,9 @@ class RankingService
             $ranking->update(['rank' => $rank]);
             $rank++;
         }
+
+        // Clear rankings cache after recalculation
+        cache()->forget('rankings_top_100');
     }
 
     /**

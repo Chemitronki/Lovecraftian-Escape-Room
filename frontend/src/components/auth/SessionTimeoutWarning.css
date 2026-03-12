@@ -1,0 +1,140 @@
+.session-timeout-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.session-timeout-modal {
+  background: linear-gradient(135deg, rgba(26, 15, 46, 0.95), rgba(20, 20, 30, 0.95));
+  border: 2px solid rgba(251, 191, 36, 0.5);
+  border-radius: 12px;
+  padding: 2rem;
+  max-width: 450px;
+  width: 90%;
+  text-align: center;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+  animation: scaleIn 0.3s ease-out;
+}
+
+.timeout-icon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.timeout-title {
+  font-size: 1.8rem;
+  color: #fbbf24;
+  margin-bottom: 1rem;
+  font-weight: bold;
+  text-shadow: 0 0 10px rgba(251, 191, 36, 0.5);
+}
+
+.timeout-message {
+  font-size: 1.1rem;
+  color: #e5e7eb;
+  margin-bottom: 0.5rem;
+}
+
+.timeout-countdown {
+  font-family: 'Courier New', monospace;
+  font-size: 1.3rem;
+  color: #fbbf24;
+  font-weight: bold;
+}
+
+.timeout-description {
+  font-size: 0.95rem;
+  color: #9ca3af;
+  margin-bottom: 2rem;
+}
+
+.timeout-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.timeout-btn {
+  padding: 0.875rem 1.5rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: none;
+  min-height: 44px;
+}
+
+.timeout-btn-primary {
+  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+  color: white;
+  box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
+}
+
+.timeout-btn-primary:hover {
+  background: linear-gradient(135deg, #7c3aed, #6d28d9);
+  box-shadow: 0 6px 20px rgba(139, 92, 246, 0.6);
+  transform: translateY(-2px);
+}
+
+.timeout-btn-secondary {
+  background: rgba(75, 85, 99, 0.8);
+  color: #e5e7eb;
+  border: 1px solid rgba(156, 163, 175, 0.3);
+}
+
+.timeout-btn-secondary:hover {
+  background: rgba(55, 65, 81, 0.9);
+  border-color: rgba(156, 163, 175, 0.5);
+}
+
+@keyframes scaleIn {
+  from {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+@media (max-width: 480px) {
+  .session-timeout-modal {
+    padding: 1.5rem;
+  }
+
+  .timeout-icon {
+    font-size: 3rem;
+  }
+
+  .timeout-title {
+    font-size: 1.5rem;
+  }
+
+  .timeout-message {
+    font-size: 1rem;
+  }
+
+  .timeout-countdown {
+    font-size: 1.2rem;
+  }
+}
