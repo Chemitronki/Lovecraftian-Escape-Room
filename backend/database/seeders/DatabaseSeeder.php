@@ -12,12 +12,12 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // \App\Models\User::factory(10)->create();
-
-        // \App\Models\User::factory()->create([
-        //     'name' => 'Test User',
-        //     'email' => 'test@example.com',
-        // ]);
+        // Create a test user
+        \App\Models\User::factory()->create([
+            'username' => 'testuser',
+            'email' => 'test@example.com',
+            'password' => bcrypt('password123'),
+        ]);
 
         $this->call(PuzzleSeeder::class);
     }
