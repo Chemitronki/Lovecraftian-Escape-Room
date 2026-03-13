@@ -106,16 +106,26 @@ class PuzzleController extends Controller
             ]);
             
             return response()->json([
+                'success' => true,
                 'message' => 'Puzzle resuelto correctamente',
-                'correct' => true,
-                'progress' => $progress
+                'data' => [
+                    'correct' => true,
+                    'puzzle_completed' => true,
+                    'all_puzzles_completed' => false,
+                    'feedback' => '¡Excelente! Has resuelto el puzzle.',
+                    'progress' => $progress
+                ]
             ]);
         }
         
         return response()->json([
+            'success' => false,
             'message' => 'Solución incorrecta',
-            'correct' => false,
-            'attempts' => $progress->attempts
+            'data' => [
+                'correct' => false,
+                'feedback' => 'Solución incorrecta. Intenta de nuevo.',
+                'attempts' => $progress->attempts
+            ]
         ]);
     }
     
