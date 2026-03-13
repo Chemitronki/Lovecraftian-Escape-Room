@@ -214,7 +214,7 @@ php artisan route:clear
 
 ## 🤝 Contribuir
 
-Este es un proyecto educativo. Si encuentras bugs o tienes sugerencias:
+Este es un proyecto iterable. Si encuentras bugs o tienes sugerencias:
 
 1. Reporta issues
 2. Propón mejoras

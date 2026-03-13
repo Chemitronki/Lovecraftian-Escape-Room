@@ -161,41 +161,57 @@ class PuzzleController extends Controller
     
     private function validateSolution($puzzle, $solution)
     {
-        $solutionData = json_decode($puzzle->solution_data, true);
-        
-        switch ($puzzle->type) {
-            case 'symbol_cipher':
-                return strtoupper($solution) === strtoupper($solutionData['solution']);
+        try {
+            $solutionData = json_decode($puzzle->solution_data, true);
             
-            case 'ritual_pattern':
-                return $solution === $solutionData['solution'];
-            
-            case 'ancient_lock':
-                return $solution === $solutionData['solution'];
-            
-            case 'memory_fragments':
-                return $solution === true; // Client-side validation
-            
-            case 'cosmic_alignment':
-                return $solution === $solutionData['solution'];
-            
-            case 'tentacle_maze':
-                return $solution === true; // Client-side validation
-            
-            case 'forbidden_tome':
-                return $solution === $solutionData['solution'];
-            
-            case 'shadow_reflection':
-                return $solution === $solutionData['solution'];
-            
-            case 'cultist_code':
-                return strtoupper($solution) === strtoupper($solutionData['solution']);
-            
-            case 'elder_sign':
-                return $solution === true; // Client-side validation
-            
-            default:
+            if (!$solutionData) {
+                \Log::error('Invalid JSON in puzzle solution_data', [
+                    'puzzle_id' => $puzzle->id,
+                    'solution_data' => $puzzle->solution_data
+                ]);
                 return false;
+            }
+            
+            switch ($puzzle->type) {
+                case 'symbol_cipher':
+                    return strtoupper($solution) === strtoupper($solutionData['solution'] ?? '');
+                
+                case 'ritual_pattern':
+                    return $solution === ($solutionData['solution'] ?? '');
+                
+                case 'ancient_lock':
+                    return $solution === ($solutionData['solution'] ?? '');
+                
+                case 'memory_fragments':
+                    return $solution === true; // Client-side validation
+                
+                case 'cosmic_alignment':
+                    return $solution === ($solutionData['solution'] ?? '');
+                
+                case 'tentacle_maze':
+                    return $solution === true; // Client-side validation
+                
+                case 'forbidden_tome':
+                    return $solution === ($solutionData['solution'] ?? '');
+                
+                case 'shadow_reflection':
+                    return $solution === ($solutionData['solution'] ?? '');
+                
+                case 'cultist_code':
+                    return strtoupper($solution) === strtoupper($solutionData['solution'] ?? '');
+                
+                case 'elder_sign':
+                    return $solution === true; // Client-side validation
+                
+                default:
+                    return false;
+            }
+        } catch (\Exception $e) {
+            \Log::error('Error validating solution', [
+                'puzzle_id' => $puzzle->id,
+                'error' => $e->getMessage()
+            ]);
+            return false;
         }
     }
 }
