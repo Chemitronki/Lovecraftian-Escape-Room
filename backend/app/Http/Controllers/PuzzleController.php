@@ -14,11 +14,32 @@ class PuzzleController extends Controller
     {
         $user = Auth::user();
         
+        \Log::info('getCurrentPuzzle called', [
+            'sessionId' => $sessionId,
+            'userId' => $user->id,
+            'userEmail' => $user->email
+        ]);
+        
         $session = GameSession::where('id', $sessionId)
             ->where('user_id', $user->id)
             ->first();
         
+        \Log::info('Session lookup result', [
+            'sessionId' => $sessionId,
+            'userId' => $user->id,
+            'found' => $session ? true : false
+        ]);
+        
         if (!$session) {
+            // Debug: check if session exists at all
+            $allSessions = GameSession::where('id', $sessionId)->first();
+            \Log::error('Session not found for user', [
+                'sessionId' => $sessionId,
+                'userId' => $user->id,
+                'sessionExists' => $allSessions ? true : false,
+                'sessionOwnerId' => $allSessions?->user_id
+            ]);
+            
             return response()->json([
                 'message' => 'Sesión no encontrada'
             ], 404);

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { register, clearAuth } from '../../features/auth/authSlice';
+import { register } from '../../features/auth/authSlice';
 
 const RegisterForm = () => {
   const dispatch = useDispatch();
@@ -116,9 +116,8 @@ const RegisterForm = () => {
   // Redirect to login after successful registration
   useEffect(() => {
     if (isAuthenticated && !loading) {
-      // Clear auth state and redirect to login
-      dispatch(clearAuth());
-      navigate('/login', { replace: true });
+      // Redirect to game board (user is already authenticated)
+      navigate('/game', { replace: true });
     }
   }, [isAuthenticated, loading, navigate, dispatch]);
 
