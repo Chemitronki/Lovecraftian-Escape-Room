@@ -7,7 +7,6 @@ import GamePage from './pages/GamePage';
 import RankingPage from './pages/RankingPage';
 import ParticleEffect from './components/atmosphere/ParticleEffect';
 import ErrorBoundary from './components/common/ErrorBoundary';
-import './utils/axiosConfig'; // Initialize axios interceptors
 import './styles/theme.css';
 import './styles/animations.css';
 import './styles/responsive.css';

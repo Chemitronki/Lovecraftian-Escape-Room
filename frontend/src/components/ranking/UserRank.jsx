@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
-import axios from 'axios';
+import { rankingService } from '../../lib/supabaseRanking';
 import './UserRank.css';
 
 const UserRank = () => {
@@ -12,22 +12,15 @@ const UserRank = () => {
   useEffect(() => {
     if (user?.id) {
       fetchUserRank();
-      
-      // Poll for updates every 30 seconds
       const interval = setInterval(fetchUserRank, 30000);
-      
       return () => clearInterval(interval);
     }
   }, [user]);
 
   const fetchUserRank = async () => {
     try {
-      const response = await axios.get(
-        `${import.meta.env.VITE_API_URL}/ranking/user/${user.id}`,
-        { withCredentials: true }
-      );
-      
-      setUserRank(response.data);
+      const data = await rankingService.getUserRank(user.id);
+      setUserRank(data);
       setError(null);
     } catch (err) {
       setError('Error al cargar tu posición');

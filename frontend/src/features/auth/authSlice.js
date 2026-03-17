@@ -1,15 +1,5 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import axios from 'axios';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
-
-// Configure axios defaults
-axios.defaults.withCredentials = true;
-
-// Get token from localStorage
-const getStoredToken = () => {
-  return localStorage.getItem('auth_token');
-};
+import { authService } from '../../lib/supabaseAuth';
 
 // Get user from localStorage
 const getStoredUser = () => {
@@ -17,214 +7,126 @@ const getStoredUser = () => {
   return user ? JSON.parse(user) : null;
 };
 
-// Initial state
 const initialState = {
   user: getStoredUser(),
-  token: getStoredToken(),
-  isAuthenticated: !!getStoredToken(),
+  token: null,
+  isAuthenticated: !!getStoredUser(),
   loading: false,
   error: null,
 };
 
-// Async thunks
 export const register = createAsyncThunk(
   'auth/register',
-  async (userData, { rejectWithValue }) => {
+  async ({ username, email, password }, { rejectWithValue }) => {
     try {
-      // Clear old game session before registering
       localStorage.removeItem('game_session');
-      
-      const response = await axios.post(`${API_URL}/auth/register`, userData);
-      
-      const { user, token } = response.data;
-      
-      console.log('Register response:', { user, token });
-      
-      // Store token and user in localStorage
-      localStorage.setItem('auth_token', token);
+      const data = await authService.register(username, email, password);
+      const user = {
+        id: data.user.id,
+        email: data.user.email,
+        username: data.user.user_metadata?.username || username,
+      };
       localStorage.setItem('user', JSON.stringify(user));
-      
-      console.log('Token saved to localStorage:', localStorage.getItem('auth_token'));
-      
-      return { user, token };
+      return { user };
     } catch (error) {
-      if (error.response?.data?.errors) {
-        // Handle validation errors
-        const errors = error.response.data.errors;
-        const errorMessage = Object.values(errors).flat().join(', ');
-        return rejectWithValue(errorMessage);
-      }
-      return rejectWithValue(
-        error.response?.data?.message || 'Error de conexión al servidor'
-      );
+      return rejectWithValue(error.message || 'Error al registrarse');
     }
   }
 );
 
 export const login = createAsyncThunk(
   'auth/login',
-  async (credentials, { rejectWithValue }) => {
+  async ({ email, password }, { rejectWithValue }) => {
     try {
-      // Clear old game session before logging in
       localStorage.removeItem('game_session');
-      
-      const response = await axios.post(`${API_URL}/auth/login`, credentials);
-      
-      const { user, token } = response.data;
-      
-      // Store token and user in localStorage
-      localStorage.setItem('auth_token', token);
+      const data = await authService.login(email, password);
+      const user = {
+        id: data.user.id,
+        email: data.user.email,
+        username: data.user.user_metadata?.username || data.user.email,
+      };
       localStorage.setItem('user', JSON.stringify(user));
-      
-      return { user, token };
+      return { user };
     } catch (error) {
-      if (error.response?.status === 429) {
-        return rejectWithValue(
-          error.response.data.errors?.[0] || 'Demasiados intentos. Por favor, espere.'
-        );
-      }
-      if (error.response?.data?.errors) {
-        const errors = error.response.data.errors;
-        const errorMessage = Array.isArray(errors) ? errors.join(', ') : Object.values(errors).flat().join(', ');
-        return rejectWithValue(errorMessage);
-      }
-      return rejectWithValue(
-        error.response?.data?.message || 'Error de conexión al servidor'
-      );
+      return rejectWithValue(error.message || 'Error al iniciar sesión');
     }
   }
 );
 
 export const logout = createAsyncThunk(
   'auth/logout',
-  async (_, { getState, rejectWithValue }) => {
+  async (_, { rejectWithValue }) => {
     try {
-      const { token } = getState().auth;
-      
-      await axios.post(
-        `${API_URL}/logout`,
-        {},
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      
-      // Clear localStorage
-      localStorage.removeItem('auth_token');
+      await authService.logout();
       localStorage.removeItem('user');
-      
+      localStorage.removeItem('game_session');
       return null;
     } catch (error) {
-      // Even if the API call fails, clear local storage
-      localStorage.removeItem('auth_token');
       localStorage.removeItem('user');
-      
-      return rejectWithValue(
-        error.response?.data?.message || 'Error al cerrar sesión'
-      );
+      localStorage.removeItem('game_session');
+      return rejectWithValue(error.message || 'Error al cerrar sesión');
     }
   }
 );
 
 export const fetchUser = createAsyncThunk(
   'auth/fetchUser',
-  async (_, { getState, rejectWithValue }) => {
+  async (_, { rejectWithValue }) => {
     try {
-      const { token } = getState().auth;
-      
-      if (!token) {
-        return rejectWithValue('No hay token de autenticación');
-      }
-      
-      const response = await axios.get(`${API_URL}/user`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      
-      if (response.data.success) {
-        const { user } = response.data.data;
-        localStorage.setItem('user', JSON.stringify(user));
-        return user;
-      } else {
-        return rejectWithValue(response.data.message || 'Error al obtener usuario');
-      }
+      const supabaseUser = await authService.getUser();
+      if (!supabaseUser) return rejectWithValue('No hay sesión activa');
+      const user = {
+        id: supabaseUser.id,
+        email: supabaseUser.email,
+        username: supabaseUser.user_metadata?.username || supabaseUser.email,
+      };
+      localStorage.setItem('user', JSON.stringify(user));
+      return user;
     } catch (error) {
-      // If token is invalid, clear auth state
-      if (error.response?.status === 401) {
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('user');
-      }
-      
-      return rejectWithValue(
-        error.response?.data?.message || 'Error de conexión al servidor'
-      );
+      localStorage.removeItem('user');
+      return rejectWithValue(error.message || 'Error al obtener usuario');
     }
   }
 );
 
-// Slice
 const authSlice = createSlice({
   name: 'auth',
   initialState,
   reducers: {
-    clearError: (state) => {
-      state.error = null;
-    },
+    clearError: (state) => { state.error = null; },
     clearAuth: (state) => {
       state.user = null;
       state.token = null;
       state.isAuthenticated = false;
       state.loading = false;
       state.error = null;
-      localStorage.removeItem('auth_token');
       localStorage.removeItem('user');
+      localStorage.removeItem('game_session');
     },
   },
   extraReducers: (builder) => {
-    // Register
     builder
-      .addCase(register.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
+      .addCase(register.pending, (state) => { state.loading = true; state.error = null; })
       .addCase(register.fulfilled, (state, action) => {
         state.loading = false;
         state.isAuthenticated = true;
         state.user = action.payload.user;
-        state.token = action.payload.token;
         state.error = null;
       })
-      .addCase(register.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload;
-      });
-    
-    // Login
+      .addCase(register.rejected, (state, action) => { state.loading = false; state.error = action.payload; });
+
     builder
-      .addCase(login.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
+      .addCase(login.pending, (state) => { state.loading = true; state.error = null; })
       .addCase(login.fulfilled, (state, action) => {
         state.loading = false;
         state.isAuthenticated = true;
         state.user = action.payload.user;
-        state.token = action.payload.token;
         state.error = null;
       })
-      .addCase(login.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload;
-      });
-    
-    // Logout
+      .addCase(login.rejected, (state, action) => { state.loading = false; state.error = action.payload; });
+
     builder
-      .addCase(logout.pending, (state) => {
-        state.loading = true;
-      })
+      .addCase(logout.pending, (state) => { state.loading = true; })
       .addCase(logout.fulfilled, (state) => {
         state.loading = false;
         state.isAuthenticated = false;
@@ -239,15 +141,13 @@ const authSlice = createSlice({
         state.token = null;
         state.error = action.payload;
       });
-    
-    // Fetch user
+
     builder
-      .addCase(fetchUser.pending, (state) => {
-        state.loading = true;
-      })
+      .addCase(fetchUser.pending, (state) => { state.loading = true; })
       .addCase(fetchUser.fulfilled, (state, action) => {
         state.loading = false;
         state.user = action.payload;
+        state.isAuthenticated = true;
       })
       .addCase(fetchUser.rejected, (state, action) => {
         state.loading = false;

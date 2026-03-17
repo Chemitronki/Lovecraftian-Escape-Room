@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import axios from '../../utils/axiosConfig';
+import { rankingService } from '../../lib/supabaseRanking';
 import './RankingBoard.css';
 
 const RankingBoard = () => {
@@ -17,40 +17,30 @@ const RankingBoard = () => {
       navigate('/login');
       return;
     }
-
     fetchRankings();
   }, [isAuthenticated, navigate]);
 
   const fetchRankings = async () => {
     try {
       setLoading(true);
-      
-      // Fetch top rankings
-      const rankingsResponse = await axios.get('/ranking/top?limit=100');
-      setRankings(rankingsResponse.data.rankings || []);
+      const top = await rankingService.getTop(100);
+      setRankings(top);
 
-      // Fetch user's rank
       if (user?.id) {
-        const userRankResponse = await axios.get(`/ranking/user/${user.id}`);
-        setUserRank(userRankResponse.data);
+        const rank = await rankingService.getUserRank(user.id);
+        setUserRank(rank);
       }
 
       setError(null);
     } catch (err) {
       console.error('Error fetching rankings:', err);
-      setError(err.response?.data?.message || 'Error al cargar el ranking');
+      setError('Error al cargar el ranking');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleBackHome = () => {
-    navigate('/');
-  };
-
-  if (!isAuthenticated) {
-    return null;
-  }
+  if (!isAuthenticated) return null;
 
   return (
     <div className="ranking-board">
@@ -60,11 +50,7 @@ const RankingBoard = () => {
           <p className="ranking-subtitle">Los mejores tiempos de escape</p>
         </div>
 
-        {error && (
-          <div className="ranking-error">
-            ⚠️ {error}
-          </div>
-        )}
+        {error && <div className="ranking-error">⚠️ {error}</div>}
 
         {loading ? (
           <div className="ranking-loading">
@@ -73,8 +59,7 @@ const RankingBoard = () => {
           </div>
         ) : (
           <>
-            {/* User's current rank */}
-            {userRank && userRank.rank && (
+            {userRank && (
               <div className="user-rank-card">
                 <div className="user-rank-content">
                   <span className="user-rank-label">Tu Posición:</span>
@@ -84,7 +69,6 @@ const RankingBoard = () => {
               </div>
             )}
 
-            {/* Rankings table */}
             <div className="rankings-table">
               <div className="table-header">
                 <div className="col-rank">Posición</div>
@@ -92,12 +76,11 @@ const RankingBoard = () => {
                 <div className="col-time">Tiempo</div>
                 <div className="col-date">Fecha</div>
               </div>
-
               <div className="table-body">
                 {rankings.length > 0 ? (
                   rankings.map((ranking, index) => (
-                    <div 
-                      key={index} 
+                    <div
+                      key={index}
                       className={`table-row ${userRank?.rank === ranking.rank ? 'current-user' : ''}`}
                     >
                       <div className="col-rank">
@@ -131,10 +114,7 @@ const RankingBoard = () => {
         )}
 
         <div className="ranking-actions">
-          <button 
-            onClick={handleBackHome}
-            className="btn-back-home"
-          >
+          <button onClick={() => navigate('/')} className="btn-back-home">
             ← Volver al Inicio
           </button>
         </div>

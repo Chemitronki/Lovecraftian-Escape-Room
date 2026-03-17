@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import { rankingService } from '../../lib/supabaseRanking';
 import RankingEntry from './RankingEntry';
 import './Leaderboard.css';
 
@@ -10,20 +10,14 @@ const Leaderboard = () => {
 
   useEffect(() => {
     fetchRankings();
-    
-    // Poll for updates every 30 seconds
     const interval = setInterval(fetchRankings, 30000);
-    
     return () => clearInterval(interval);
   }, []);
 
   const fetchRankings = async () => {
     try {
-      const response = await axios.get(`${import.meta.env.VITE_API_URL}/ranking/top`, {
-        withCredentials: true,
-      });
-      
-      setRankings(response.data.rankings || []);
+      const data = await rankingService.getTop(100);
+      setRankings(data);
       setError(null);
     } catch (err) {
       setError('Error al cargar el ranking');
