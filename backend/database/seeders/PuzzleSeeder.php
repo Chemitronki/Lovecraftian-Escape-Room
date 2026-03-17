@@ -20,7 +20,7 @@ class PuzzleSeeder extends Seeder
                 'description' => 'Decodifica los símbolos lovecraftianos para revelar la palabra oculta.',
                 'solution_data' => json_encode([
                     'solution' => 'CTHULHU',
-                    'symbols' => ['☥', '⚝', '⛧', '⚛', '⚕', '⚚', '⚡']
+                    'symbols' => ['☿', '⚡', '☠', '⚜', '⬟', '☠', '⚜']
                 ]),
             ],
             [

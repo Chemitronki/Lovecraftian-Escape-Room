@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import './CosmicAlignment.css';
 
@@ -13,16 +13,28 @@ const CosmicAlignment = ({ puzzleData, onSubmit, disabled }) => {
   
   const stars = (solutionData?.solution || []).map(name => ({ name }));
   const positions = solutionData?.positions || [];
+  const TOLERANCE = 30; // pixels tolerance for correct placement
   
   const [starPositions, setStarPositions] = useState(
     stars.map((star, index) => ({
       name: star.name,
-      x: positions[index]?.x || (50 + (index * 60) % 300),
-      y: positions[index]?.y || (50 + Math.floor(index / 5) * 60),
+      x: 50 + Math.random() * 400,
+      y: 50 + Math.random() * 400,
     }))
   );
   
   const [draggedStar, setDraggedStar] = useState(null);
+
+  // Calculate which stars are correctly placed
+  const correctPlacements = useMemo(() => {
+    return starPositions.map((star, index) => {
+      if (!positions[index]) return false;
+      const dx = star.x - positions[index].x;
+      const dy = star.y - positions[index].y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      return distance <= TOLERANCE;
+    });
+  }, [starPositions, positions]);
 
   const handleMouseDown = (index, e) => {
     if (disabled) return;
@@ -85,9 +97,15 @@ const CosmicAlignment = ({ puzzleData, onSubmit, disabled }) => {
 
   const handleSubmit = () => {
     if (!disabled) {
-      // Send star names in order of their positions
-      const solution = starPositions.map(star => star.name);
-      onSubmit(solution);
+      // Check if all stars are correctly placed
+      const allCorrect = correctPlacements.every(isCorrect => isCorrect);
+      if (allCorrect) {
+        const solution = starPositions.map(star => star.name);
+        onSubmit(solution);
+      } else {
+        // Show feedback - some stars are not in correct position
+        alert('Las estrellas no están alineadas correctamente. Verifica la posición de cada una.');
+      }
     }
   };
 
@@ -95,8 +113,8 @@ const CosmicAlignment = ({ puzzleData, onSubmit, disabled }) => {
     setStarPositions(
       stars.map((star, index) => ({
         name: star.name,
-        x: 50 + (index * 60) % 300,
-        y: 50 + Math.floor(index / 5) * 60,
+        x: 50 + Math.random() * 400,
+        y: 50 + Math.random() * 400,
       }))
     );
   };
@@ -104,33 +122,55 @@ const CosmicAlignment = ({ puzzleData, onSubmit, disabled }) => {
   return (
     <div className="cosmic-alignment">
       <div className="alignment-instructions">
-        Arrastra las estrellas para alinearlas según el mapa estelar
+        Arrastra las estrellas para alinearlas según el mapa estelar de referencia
       </div>
 
-      <div
-        className="star-field"
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-      >
-        {starPositions.map((star, index) => (
-          <div
-            key={index}
-            className={`star ${draggedStar === index ? 'dragging' : ''}`}
-            style={{
-              left: `${star.x}px`,
-              top: `${star.y}px`,
-            }}
-            onMouseDown={(e) => handleMouseDown(index, e)}
-            onTouchStart={(e) => handleTouchStart(index, e)}
-          >
-            <div className="star-glow"></div>
-            <div className="star-body">⭐</div>
-            <div className="star-label">{star.name}</div>
+      <div className="alignment-container">
+        <div className="alignment-single-field">
+          <h3>✨ Alinea las Estrellas según el Mapa</h3>
+          <div className="progress-indicator">
+            {correctPlacements.filter(Boolean).length} / {correctPlacements.length} estrellas alineadas
           </div>
-        ))}
+          <div
+            className="star-field-unified"
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseUp}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+          >
+            {/* Show reference positions as subtle guides */}
+            {positions.map((pos, index) => (
+              <div
+                key={`target-${index}`}
+                className="target-zone-reference"
+                style={{
+                  left: `${pos.x}px`,
+                  top: `${pos.y}px`,
+                }}
+              />
+            ))}
+
+            {/* Draggable stars */}
+            {starPositions.map((star, index) => (
+              <div
+                key={index}
+                className={`star ${draggedStar === index ? 'dragging' : ''} ${correctPlacements[index] ? 'correct' : ''}`}
+                style={{
+                  left: `${star.x}px`,
+                  top: `${star.y}px`,
+                }}
+                onMouseDown={(e) => handleMouseDown(index, e)}
+                onTouchStart={(e) => handleTouchStart(index, e)}
+              >
+                <div className="star-glow"></div>
+                <div className="star-body">⭐</div>
+                <div className="star-label">{star.name}</div>
+                {correctPlacements[index] && <div className="correct-indicator">✓</div>}
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
       <div className="alignment-controls">

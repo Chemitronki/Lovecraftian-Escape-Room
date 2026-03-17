@@ -88,10 +88,13 @@ const ShadowReflection = ({ puzzleData, onSubmit, disabled }) => {
     }
   };
 
-  // Check if a direction is repeated
+  // Check if a direction is repeated (only if it's wrong)
   const isRepeated = (index) => {
     if (index === 0) return false;
-    return userPattern[index] === userPattern[index - 1];
+    // Check if this repetition is allowed in the target pattern
+    const isAllowedInTarget = targetPattern[index] === targetPattern[index - 1];
+    // Only mark as repeated if it's not allowed in the target
+    return userPattern[index] === userPattern[index - 1] && !isAllowedInTarget;
   };
 
   return (

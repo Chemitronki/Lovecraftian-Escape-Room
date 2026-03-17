@@ -26,6 +26,7 @@ const Cinematic = ({ type = 'opening', onComplete }) => {
     <div className="cinematic-overlay">
       <div className="cinematic-content">
         {type === 'opening' && <OpeningCinematic onEnd={handleCinematicEnd} />}
+        {type === 'cthulhu' && <CthulhuCinematic onEnd={handleCinematicEnd} />}
         {type === 'victory' && <VictoryCinematic onEnd={handleCinematicEnd} />}
       </div>
 
@@ -44,13 +45,24 @@ const Cinematic = ({ type = 'opening', onComplete }) => {
 
 const OpeningCinematic = ({ onEnd }) => {
   useEffect(() => {
-    const timer = setTimeout(onEnd, 8000); // 8 seconds
+    const timer = setTimeout(onEnd, 10000); // 10 seconds
     return () => clearTimeout(timer);
   }, [onEnd]);
 
   return (
     <div className="opening-cinematic">
-      <div className="cinematic-text fade-in-slow">
+      {/* Background image */}
+      <div className="cinematic-bg-image" style={{
+        backgroundImage: 'url(/cinematics/cave.jpg)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+      }}></div>
+
+      {/* Overlay for text readability */}
+      <div className="cinematic-overlay-dark"></div>
+
+      {/* Main text content */}
+      <div className="cinematic-text">
         <p className="cinematic-line delay-1">
           En las profundidades olvidadas...
         </p>
@@ -61,11 +73,59 @@ const OpeningCinematic = ({ onEnd }) => {
           Yace una gruta ancestral...
         </p>
         <p className="cinematic-line delay-4">
+          Hogar de los Antiguos...
+        </p>
+        <p className="cinematic-line delay-5">
           ¿Podrás escapar antes de que sea demasiado tarde?
         </p>
       </div>
-      
+
+      {/* Atmospheric effects */}
       <div className="cinematic-vignette" />
+      <div className="cinematic-fog"></div>
+    </div>
+  );
+};
+
+const CthulhuCinematic = ({ onEnd }) => {
+  useEffect(() => {
+    const timer = setTimeout(onEnd, 12000); // 12 seconds
+    return () => clearTimeout(timer);
+  }, [onEnd]);
+
+  return (
+    <div className="cthulhu-cinematic">
+      {/* Background image */}
+      <div className="cinematic-bg-image" style={{
+        backgroundImage: 'url(/cinematics/cthulhu.jpg)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+      }}></div>
+
+      {/* Darkness overlay that fades out (revealing the image) */}
+      <div className="cthulhu-darkness-overlay"></div>
+
+      {/* Text overlay */}
+      <div className="cinematic-text cthulhu-text">
+        <p className="cthulhu-line delay-1">
+          Los sellos se rompen...
+        </p>
+        <p className="cthulhu-line delay-2">
+          La criatura despierta...
+        </p>
+        <p className="cthulhu-line delay-3">
+          CTHULHU HA REVIVIDO
+        </p>
+        <p className="cthulhu-line delay-4">
+          Pero has escapado de su gruta...
+        </p>
+        <p className="cthulhu-line delay-5">
+          Por ahora...
+        </p>
+      </div>
+
+      {/* Atmospheric effects */}
+      <div className="cthulhu-vignette" />
     </div>
   );
 };

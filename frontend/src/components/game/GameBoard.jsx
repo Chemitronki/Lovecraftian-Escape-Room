@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -44,6 +44,7 @@ const GameBoard = () => {
   const [showCinematic, setShowCinematic] = useState(false);
   const [cinematicType, setCinematicType] = useState('opening');
   const [showTimeoutWarning, setShowTimeoutWarning] = useState(false);
+  const [showCthulhuCinematic, setShowCthulhuCinematic] = useState(false);
 
   // Check authentication FIRST - redirect if not authenticated
   useEffect(() => {
@@ -83,17 +84,16 @@ const GameBoard = () => {
     
     const storedSession = localStorage.getItem('game_session');
     
-    if (!storedSession) {
-      // No hay sesión guardada, obtener una nueva
-      dispatch(getSession());
-    } else {
+    if (storedSession) {
       // Hay sesión guardada, recuperarla y sincronizar tiempo
+      console.log('Recovering stored session');
       dispatch(recoverSession());
       // Sincronizar tiempo con el servidor inmediatamente
       setTimeout(() => {
         dispatch(syncSession());
       }, 100);
     }
+    // If no stored session, don't call getSession() - wait for user to click "Comenzar Juego"
   }, [isAuthenticated, dispatch]);
 
   // Load current puzzle when session is active - ONLY if authenticated
@@ -115,23 +115,31 @@ const GameBoard = () => {
         isActive
       });
       dispatch(completeGame(timeRemaining));
+      // Show Cthulhu cinematic instead of going directly to victory
+      setShowCthulhuCinematic(true);
     }
   }, [completedPuzzles, totalPuzzles, isActive, timeRemaining, dispatch]);
 
   // Handle game start
-  const handleStartGame = async () => {
+  const handleStartGame = useCallback(async () => {
     try {
       await dispatch(startGame()).unwrap();
+      // Show opening cinematic before first puzzle
       setCinematicType('opening');
       setShowCinematic(true);
     } catch (err) {
       console.error('Error starting game:', err);
     }
-  };
+  }, [dispatch]);
 
   // Handle cinematic complete
   const handleCinematicComplete = () => {
     setShowCinematic(false);
+  };
+
+  // Handle Cthulhu cinematic complete
+  const handleCthulhuCinematicComplete = () => {
+    setShowCthulhuCinematic(false);
   };
 
   // Handle abandon game
@@ -167,6 +175,11 @@ const GameBoard = () => {
   // Show cinematic
   if (showCinematic) {
     return <Cinematic type={cinematicType} onComplete={handleCinematicComplete} />;
+  }
+
+  // Show Cthulhu cinematic before victory
+  if (showCthulhuCinematic) {
+    return <Cinematic type="cthulhu" onComplete={handleCthulhuCinematicComplete} />;
   }
 
   // Show session timeout warning

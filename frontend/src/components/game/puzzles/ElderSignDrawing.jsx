@@ -91,34 +91,47 @@ const ElderSignDrawing = ({ puzzleData, onSubmit, disabled }) => {
   const calculateAccuracy = (userPath) => {
     if (targetPattern.length === 0 || userPath.length === 0) return 0;
 
-    // For each point in the target pattern, find the closest point in the user path
-    let totalDistance = 0;
-    const maxDistance = 150; // Maximum acceptable distance
+    // Check if user path follows the target pattern in sequence
+    let matchedPoints = 0;
+    let userIndex = 0;
+    const strictTolerance = 30; // Stricter tolerance
 
     for (let i = 0; i < targetPattern.length; i++) {
       const targetPoint = targetPattern[i];
-      let minDistance = maxDistance;
+      let found = false;
 
-      // Find the closest point in user path to this target point
-      for (let j = 0; j < userPath.length; j++) {
+      // Look for a matching point in the user path starting from userIndex
+      for (let j = userIndex; j < userPath.length; j++) {
         const userPoint = userPath[j];
         const distance = Math.sqrt(
           Math.pow(targetPoint.x - userPoint.x, 2) +
           Math.pow(targetPoint.y - userPoint.y, 2)
         );
         
-        if (distance < minDistance) {
-          minDistance = distance;
+        if (distance <= strictTolerance) {
+          matchedPoints++;
+          userIndex = j + 1;
+          found = true;
+          break;
         }
       }
 
-      totalDistance += minDistance;
+      // If we didn't find a match, check if we're close enough to continue
+      if (!found && userIndex < userPath.length) {
+        const closestDistance = Math.sqrt(
+          Math.pow(targetPoint.x - userPath[userIndex].x, 2) +
+          Math.pow(targetPoint.y - userPath[userIndex].y, 2)
+        );
+        
+        if (closestDistance > 60) {
+          // Too far off the pattern
+          break;
+        }
+      }
     }
 
-    // Calculate accuracy based on average distance
-    const averageDistance = totalDistance / targetPattern.length;
-    const accuracy = Math.max(0, 100 - (averageDistance * 2)); // More lenient calculation
-
+    // Calculate accuracy based on how many target points were matched
+    const accuracy = (matchedPoints / targetPattern.length) * 100;
     return Math.round(Math.min(100, accuracy));
   };
 
@@ -243,7 +256,7 @@ const ElderSignDrawing = ({ puzzleData, onSubmit, disabled }) => {
     }
   };
 
-  const canSubmit = accuracy >= 70 && path.length > 20;
+  const canSubmit = accuracy >= 80 && path.length > 30;
 
   return (
     <div className="elder-sign-drawing">
@@ -332,7 +345,7 @@ const ElderSignDrawing = ({ puzzleData, onSubmit, disabled }) => {
 
       {!canSubmit && path.length > 0 && (
         <div className="hint-message">
-          💡 Necesitas al menos 70% de precisión y un trazo completo
+          💡 Necesitas al menos 80% de precisión y un trazo completo
         </div>
       )}
     </div>
