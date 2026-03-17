@@ -30,13 +30,8 @@ const UserRank = () => {
       setUserRank(response.data);
       setError(null);
     } catch (err) {
-      if (err.response?.status === 404) {
-        setUserRank(null);
-        setError(null);
-      } else {
-        setError('Error al cargar tu posición');
-        console.error('Error fetching user rank:', err);
-      }
+      setError('Error al cargar tu posición');
+      console.error('Error fetching user rank:', err);
     } finally {
       setLoading(false);
     }
@@ -58,7 +53,7 @@ const UserRank = () => {
     );
   }
 
-  if (!userRank) {
+  if (!userRank || !userRank.rank) {
     return (
       <div className="user-rank-container">
         <div className="user-rank-empty">

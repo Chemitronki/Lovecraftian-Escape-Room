@@ -60,6 +60,9 @@ const LoginForm = () => {
       return;
     }
     
+    // Clear old game session from localStorage before logging in
+    localStorage.removeItem('game_session');
+    
     dispatch(login(formData));
   };
 

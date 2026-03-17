@@ -39,6 +39,12 @@ export const getSession = createAsyncThunk(
   async (_, { rejectWithValue, getState }) => {
     try {
       const { token } = getState().auth;
+      
+      // Ensure token exists
+      if (!token) {
+        return rejectWithValue('No hay token de autenticación');
+      }
+      
       const response = await axios.get(
         `${API_URL}/game/session`,
         {
@@ -56,6 +62,8 @@ export const getSession = createAsyncThunk(
         timeRemaining: response.data.time_remaining
       };
     } catch (error) {
+      // Clear invalid session on error
+      localStorage.removeItem('game_session');
       return rejectWithValue(
         error.response?.data?.message || 'Error al obtener sesión'
       );
@@ -139,13 +147,22 @@ export const abandonGame = createAsyncThunk(
   }
 );
 
-export const getCurrentPuzzle = createAsyncThunk(
-  'game/getCurrentPuzzle',
+export const getSessionProgress = createAsyncThunk(
+  'game/getSessionProgress',
   async (sessionId, { rejectWithValue, getState }) => {
+    if (!sessionId) {
+      return rejectWithValue('Session ID is required');
+    }
+    
     try {
       const { token } = getState().auth;
+      
+      if (!token) {
+        return rejectWithValue('No hay token de autenticación');
+      }
+      
       const response = await axios.get(
-        `${API_URL}/puzzles/${sessionId}/current`,
+        `${API_URL}/puzzles/${sessionId}/progress`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -155,6 +172,61 @@ export const getCurrentPuzzle = createAsyncThunk(
       
       return response.data;
     } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || 'Error al obtener progreso'
+      );
+    }
+  }
+);
+
+export const getCurrentPuzzle = createAsyncThunk(
+  'game/getCurrentPuzzle',
+  async (sessionId, { rejectWithValue, getState }) => {
+    // Validate sessionId
+    if (!sessionId) {
+      return rejectWithValue('Session ID is required');
+    }
+    
+    try {
+      const { token } = getState().auth;
+      
+      // Ensure token exists
+      if (!token) {
+        return rejectWithValue('No hay token de autenticación');
+      }
+      
+      const response = await axios.get(
+        `${API_URL}/puzzles/${sessionId}/current`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      
+      // Check if all puzzles are completed
+      if (response.data.session?.status === 'completed') {
+        return {
+          allCompleted: true,
+          session: response.data.session
+        };
+      }
+      
+      return response.data;
+    } catch (error) {
+      // Check if error is because all puzzles are completed
+      if (error.response?.status === 200 && error.response?.data?.session?.status === 'completed') {
+        return {
+          allCompleted: true,
+          session: error.response.data.session
+        };
+      }
+      
+      // Clear invalid session on 404
+      if (error.response?.status === 404) {
+        localStorage.removeItem('game_session');
+      }
+      
       return rejectWithValue(
         error.response?.data?.message || 'Error al obtener puzzle'
       );
@@ -341,6 +413,18 @@ const gameSlice = createSlice({
         state.error = action.payload;
       });
     
+    // Get session progress
+    builder
+      .addCase(getSessionProgress.pending, (state) => {
+        // No loading state for progress
+      })
+      .addCase(getSessionProgress.fulfilled, (state, action) => {
+        state.completedPuzzles = action.payload.completed_puzzles;
+      })
+      .addCase(getSessionProgress.rejected, (state) => {
+        // Silent fail for progress
+      });
+    
     // Get current puzzle
     builder
       .addCase(getCurrentPuzzle.pending, (state) => {
@@ -349,7 +433,14 @@ const gameSlice = createSlice({
       })
       .addCase(getCurrentPuzzle.fulfilled, (state, action) => {
         state.puzzleLoading = false;
-        state.currentPuzzle = action.payload.puzzle;
+        
+        // Check if all puzzles are completed
+        if (action.payload.allCompleted) {
+          state.session = action.payload.session;
+          state.currentPuzzle = null;
+        } else {
+          state.currentPuzzle = action.payload.puzzle;
+        }
       })
       .addCase(getCurrentPuzzle.rejected, (state, action) => {
         state.puzzleLoading = false;
@@ -364,7 +455,9 @@ const gameSlice = createSlice({
       })
       .addCase(submitPuzzleSolution.fulfilled, (state, action) => {
         state.loading = false;
-        if (action.payload.correct) {
+        // Check if solution is correct - handle both response formats
+        const isCorrect = action.payload.data?.correct || action.payload.correct;
+        if (isCorrect) {
           state.completedPuzzles += 1;
         }
       })

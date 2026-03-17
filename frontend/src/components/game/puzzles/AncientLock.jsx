@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import './AncientLock.css';
 
@@ -15,6 +15,61 @@ const AncientLock = ({ puzzleData, onSubmit, disabled }) => {
   const combinationLength = solutionData?.solution?.length || 4;
   
   const [combination, setCombination] = useState(Array(combinationLength).fill(''));
+  const [iconPositions, setIconPositions] = useState({});
+
+  // Initialize random positions for icons - full screen with separation
+  useEffect(() => {
+    const positions = {};
+    clues.forEach((_, clueIndex) => {
+      // Get count for this clue
+      let count = 0;
+      const clue = clues[clueIndex];
+      if (clue.includes('tentáculo')) count = 7;
+      else if (clue.includes('ángulo')) count = 3;
+      else if (clue.includes('ojo')) count = 9;
+      else if (clue.includes('estrella')) count = 4;
+      
+      // Create separate position for each icon
+      for (let i = 0; i < count; i++) {
+        const key = `${clueIndex}-${i}`;
+        positions[key] = {
+          x: Math.random() * (window.innerWidth - 60),
+          y: Math.random() * (window.innerHeight - 60),
+          vx: (Math.random() - 0.5) * 4,
+          vy: (Math.random() - 0.5) * 4,
+        };
+      }
+    });
+    setIconPositions(positions);
+  }, [clues.length]);
+
+  // Animate icons across full screen
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setIconPositions(prev => {
+        const newPositions = { ...prev };
+        Object.keys(newPositions).forEach(key => {
+          const pos = newPositions[key];
+          let newX = pos.x + pos.vx;
+          let newY = pos.y + pos.vy;
+          let newVx = pos.vx;
+          let newVy = pos.vy;
+
+          // Bounce off walls (full screen)
+          if (newX <= 0 || newX >= window.innerWidth - 60) newVx *= -1;
+          if (newY <= 0 || newY >= window.innerHeight - 60) newVy *= -1;
+
+          newX = Math.max(0, Math.min(window.innerWidth - 60, newX));
+          newY = Math.max(0, Math.min(window.innerHeight - 60, newY));
+
+          newPositions[key] = { x: newX, y: newY, vx: newVx, vy: newVy };
+        });
+        return newPositions;
+      });
+    }, 30);
+
+    return () => clearInterval(interval);
+  }, []);
 
   const handleDigitChange = (index, value) => {
     if (disabled) return;
@@ -57,6 +112,52 @@ const AncientLock = ({ puzzleData, onSubmit, disabled }) => {
 
   return (
     <div className="ancient-lock">
+      {/* Floating icons across screen - separated */}
+      <div className="floating-icons-container">
+        {clues.map((clue, clueIndex) => {
+          let icon = '🔮';
+          let count = 0;
+          
+          if (clue.includes('tentáculo')) {
+            icon = '🐙';
+            count = 7;
+          } else if (clue.includes('ángulo')) {
+            icon = '📐';
+            count = 3;
+          } else if (clue.includes('ojo')) {
+            icon = '👁️';
+            count = 9;
+          } else if (clue.includes('estrella')) {
+            icon = '⭐';
+            count = 4;
+          }
+          
+          return Array(count).fill(0).map((_, i) => {
+            const key = `${clueIndex}-${i}`;
+            const pos = iconPositions[key] || { x: 0, y: 0 };
+            
+            return (
+              <span 
+                key={key}
+                className="floating-icon"
+                style={{
+                  position: 'fixed',
+                  left: `${pos.x}px`,
+                  top: `${pos.y}px`,
+                  fontSize: '2.5rem',
+                  zIndex: 10,
+                  pointerEvents: 'none',
+                  transition: 'all 0.03s linear',
+                  textShadow: '0 0 10px rgba(0,0,0,0.8)',
+                }}
+              >
+                {icon}
+              </span>
+            );
+          });
+        })}
+      </div>
+
       <div className="lock-visual">
         <div className="lock-body">
           <div className="lock-shackle"></div>
@@ -71,7 +172,6 @@ const AncientLock = ({ puzzleData, onSubmit, disabled }) => {
         <div className="clues-list">
           {clues.map((clue, index) => (
             <div key={index} className="clue-item">
-              <span className="clue-icon">🔮</span>
               <span className="clue-text">{clue}</span>
             </div>
           ))}

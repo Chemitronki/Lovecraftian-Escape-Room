@@ -24,15 +24,17 @@ const TentacleMaze = ({ puzzleData, onSubmit, disabled }) => {
   const [playerPos, setPlayerPos] = useState({ x: 0, y: 0 });
   const [path, setPath] = useState([{ x: 0, y: 0 }]);
   const [hasCollided, setHasCollided] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
     // Check if player reached exit
-    if (playerPos.x === exitPos.x && playerPos.y === exitPos.y && !hasCollided) {
+    if (playerPos.x === exitPos.x && playerPos.y === exitPos.y && !hasCollided && !submitted) {
+      setSubmitted(true);
       setTimeout(() => {
-        onSubmit({ final_position: playerPos });
+        onSubmit(true);
       }, 500);
     }
-  }, [playerPos, exitPos, hasCollided, onSubmit]);
+  }, [playerPos.x, playerPos.y, exitPos.x, exitPos.y, hasCollided, submitted, onSubmit]);
 
   const isObstacle = (x, y) => {
     return obstacles.some(obs => obs.x === x && obs.y === y);
@@ -106,6 +108,7 @@ const TentacleMaze = ({ puzzleData, onSubmit, disabled }) => {
     setPlayerPos({ x: 0, y: 0 });
     setPath([{ x: 0, y: 0 }]);
     setHasCollided(false);
+    setSubmitted(false);
   };
 
   useEffect(() => {

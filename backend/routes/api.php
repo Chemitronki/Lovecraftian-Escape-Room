@@ -51,6 +51,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Puzzle Routes
     Route::prefix('puzzles')->group(function () {
         Route::get('/{sessionId}/current', [PuzzleController::class, 'getCurrentPuzzle']);
+        Route::get('/{sessionId}/progress', [PuzzleController::class, 'getSessionProgress']);
         Route::post('/{puzzleId}/submit', [PuzzleController::class, 'submitSolution']);
         Route::get('/{puzzleId}/progress', [PuzzleController::class, 'getProgress']);
     });

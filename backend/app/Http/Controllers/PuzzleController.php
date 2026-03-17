@@ -10,6 +10,31 @@ use Illuminate\Support\Facades\Auth;
 
 class PuzzleController extends Controller
 {
+    public function getSessionProgress(Request $request, $sessionId)
+    {
+        $user = Auth::user();
+        
+        $session = GameSession::where('id', $sessionId)
+            ->where('user_id', $user->id)
+            ->first();
+        
+        if (!$session) {
+            return response()->json([
+                'message' => 'Sesión no encontrada'
+            ], 404);
+        }
+        
+        // Get completed puzzles count
+        $completedCount = PuzzleProgress::where('game_session_id', $sessionId)
+            ->where('is_completed', true)
+            ->count();
+        
+        return response()->json([
+            'completed_puzzles' => $completedCount,
+            'total_puzzles' => 10
+        ]);
+    }
+    
     public function getCurrentPuzzle(Request $request, $sessionId)
     {
         $user = Auth::user();
@@ -60,9 +85,17 @@ class PuzzleController extends Controller
             ->first();
         
         if (!$currentPuzzle) {
+            // All puzzles completed - mark session as completed
+            $session->update([
+                'status' => 'completed',
+                'completed_at' => now(),
+                'completion_time' => now()->diffInSeconds($session->created_at)
+            ]);
+            
             return response()->json([
-                'message' => 'Todos los puzzles han sido completados'
-            ], 404);
+                'message' => 'Todos los puzzles han sido completados',
+                'session' => $session
+            ], 200);
         }
         
         // Get or create progress record
@@ -207,7 +240,12 @@ class PuzzleController extends Controller
                     return strtoupper($solution) === strtoupper($solutionData['solution'] ?? '');
                 
                 case 'ritual_pattern':
-                    return $solution === ($solutionData['solution'] ?? '');
+                    // Compare arrays - convert both to JSON for comparison
+                    $solutionArray = $solutionData['solution'] ?? [];
+                    if (is_array($solution) && is_array($solutionArray)) {
+                        return json_encode($solution) === json_encode($solutionArray);
+                    }
+                    return $solution === $solutionArray;
                 
                 case 'ancient_lock':
                     return $solution === ($solutionData['solution'] ?? '');
@@ -216,16 +254,32 @@ class PuzzleController extends Controller
                     return $solution === true; // Client-side validation
                 
                 case 'cosmic_alignment':
-                    return $solution === ($solutionData['solution'] ?? '');
+                    // Compare arrays - convert both to JSON for comparison
+                    $solutionArray = $solutionData['solution'] ?? [];
+                    if (is_array($solution) && is_array($solutionArray)) {
+                        return json_encode($solution) === json_encode($solutionArray);
+                    }
+                    return $solution === $solutionArray;
                 
                 case 'tentacle_maze':
                     return $solution === true; // Client-side validation
                 
                 case 'forbidden_tome':
-                    return $solution === ($solutionData['solution'] ?? '');
+                    // Compare arrays - convert both to JSON for comparison
+                    $solutionArray = $solutionData['solution'] ?? [];
+                    if (is_array($solution) && is_array($solutionArray)) {
+                        // Compare as JSON strings to handle array comparison properly
+                        return json_encode($solution) === json_encode($solutionArray);
+                    }
+                    return $solution === $solutionArray;
                 
                 case 'shadow_reflection':
-                    return $solution === ($solutionData['solution'] ?? '');
+                    // Compare arrays - convert both to JSON for comparison
+                    $solutionArray = $solutionData['solution'] ?? [];
+                    if (is_array($solution) && is_array($solutionArray)) {
+                        return json_encode($solution) === json_encode($solutionArray);
+                    }
+                    return $solution === $solutionArray;
                 
                 case 'cultist_code':
                     return strtoupper($solution) === strtoupper($solutionData['solution'] ?? '');

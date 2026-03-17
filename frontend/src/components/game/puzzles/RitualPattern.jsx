@@ -35,7 +35,9 @@ const RitualPattern = ({ puzzleData, onSubmit, disabled }) => {
 
   const handleSubmit = () => {
     if (selectedSequence.length > 0 && !disabled) {
-      onSubmit(selectedSequence);
+      // Convert selected indices to item names
+      const solution = selectedSequence.map(id => solutionData?.items[id]);
+      onSubmit(solution);
     }
   };
 

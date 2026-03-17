@@ -7,7 +7,9 @@ import {
   recoverSession, 
   abandonGame, 
   getCurrentPuzzle,
-  completeGame 
+  completeGame,
+  syncSession,
+  getSessionProgress
 } from '../../features/game/gameSlice';
 import { logout } from '../../features/auth/authSlice';
 import Timer from './Timer';
@@ -43,10 +45,12 @@ const GameBoard = () => {
   const [cinematicType, setCinematicType] = useState('opening');
   const [showTimeoutWarning, setShowTimeoutWarning] = useState(false);
 
-  // Check authentication
+  // Check authentication FIRST - redirect if not authenticated
   useEffect(() => {
     if (!isAuthenticated) {
-      navigate('/login');
+      // Clear game session if not authenticated
+      localStorage.removeItem('game_session');
+      navigate('/login', { replace: true });
     }
   }, [isAuthenticated, navigate]);
 
@@ -73,26 +77,41 @@ const GameBoard = () => {
     return cleanup;
   }, [isActive]);
 
-  // Try to recover session from localStorage on mount
+  // Try to recover session from localStorage on mount - ONLY if authenticated
   useEffect(() => {
-    dispatch(recoverSession());
+    if (!isAuthenticated) return;
     
     const storedSession = localStorage.getItem('game_session');
+    
     if (!storedSession) {
+      // No hay sesión guardada, obtener una nueva
       dispatch(getSession());
+    } else {
+      // Hay sesión guardada, recuperarla y sincronizar tiempo
+      dispatch(recoverSession());
+      // Sincronizar tiempo con el servidor
+      dispatch(syncSession());
     }
-  }, [dispatch]);
+  }, [isAuthenticated, dispatch]);
 
-  // Load current puzzle when session is active
+  // Load current puzzle when session is active - ONLY if authenticated
   useEffect(() => {
-    if (session?.id && isActive) {
-      dispatch(getCurrentPuzzle(session.id));
-    }
-  }, [session?.id, isActive, dispatch]);
+    if (!isAuthenticated) return;
+    if (!session?.id || !isActive) return;
+    
+    dispatch(getCurrentPuzzle(session.id));
+    // Also sync progress
+    dispatch(getSessionProgress(session.id));
+  }, [session?.id, isActive, isAuthenticated, dispatch]);
 
   // Check if all puzzles completed
   useEffect(() => {
     if (completedPuzzles === totalPuzzles && isActive) {
+      console.log('All puzzles completed, calling completeGame', {
+        completedPuzzles,
+        totalPuzzles,
+        isActive
+      });
       dispatch(completeGame(timeRemaining));
     }
   }, [completedPuzzles, totalPuzzles, isActive, timeRemaining, dispatch]);

@@ -85,7 +85,9 @@ const CosmicAlignment = ({ puzzleData, onSubmit, disabled }) => {
 
   const handleSubmit = () => {
     if (!disabled) {
-      onSubmit(starPositions);
+      // Send star names in order of their positions
+      const solution = starPositions.map(star => star.name);
+      onSubmit(solution);
     }
   };
 
@@ -104,13 +106,6 @@ const CosmicAlignment = ({ puzzleData, onSubmit, disabled }) => {
       <div className="alignment-instructions">
         Arrastra las estrellas para alinearlas según el mapa estelar
       </div>
-
-      {chartImage && (
-        <div className="star-chart-reference">
-          <h4>Mapa de Referencia:</h4>
-          <div className="chart-placeholder">{chartImage}</div>
-        </div>
-      )}
 
       <div
         className="star-field"

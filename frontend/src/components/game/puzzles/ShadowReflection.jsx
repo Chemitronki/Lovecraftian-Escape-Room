@@ -17,24 +17,34 @@ const ShadowReflection = ({ puzzleData, onSubmit, disabled }) => {
   const [userPattern, setUserPattern] = useState([]);
   const [currentStep, setCurrentStep] = useState(0);
   const [isShowingPattern, setIsShowingPattern] = useState(true);
+  const [submitted, setSubmitted] = useState(false);
+  const [displayedStep, setDisplayedStep] = useState(0);
 
   useEffect(() => {
-    // Show the pattern for 3 seconds at start
-    const timer = setTimeout(() => {
-      setIsShowingPattern(false);
-    }, 3000);
-
-    return () => clearTimeout(timer);
-  }, []);
+    // Show the pattern sequentially
+    if (isShowingPattern && displayedStep < patternLength) {
+      const timer = setTimeout(() => {
+        setDisplayedStep(displayedStep + 1);
+      }, 2000); // 2 seconds per movement (1.5s animation + 0.5s pause)
+      return () => clearTimeout(timer);
+    } else if (isShowingPattern && displayedStep >= patternLength) {
+      // Pattern finished showing, hide it after a brief pause
+      const timer = setTimeout(() => {
+        setIsShowingPattern(false);
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [isShowingPattern, displayedStep, patternLength]);
 
   useEffect(() => {
     // Auto-submit when pattern is complete
-    if (userPattern.length === patternLength && userPattern.length > 0) {
+    if (userPattern.length === patternLength && userPattern.length > 0 && !submitted) {
+      setSubmitted(true);
       setTimeout(() => {
         onSubmit(userPattern);
       }, 500);
     }
-  }, [userPattern, patternLength, onSubmit]);
+  }, [userPattern.length, patternLength, submitted]);
 
   const handleMovement = (direction) => {
     if (disabled || isShowingPattern || userPattern.length >= patternLength) return;
@@ -47,10 +57,9 @@ const ShadowReflection = ({ puzzleData, onSubmit, disabled }) => {
   const handleReset = () => {
     setUserPattern([]);
     setCurrentStep(0);
+    setDisplayedStep(0);
     setIsShowingPattern(true);
-    setTimeout(() => {
-      setIsShowingPattern(false);
-    }, 3000);
+    setSubmitted(false);
   };
 
   const getPositionClass = (direction) => {
@@ -76,17 +85,14 @@ const ShadowReflection = ({ puzzleData, onSubmit, disabled }) => {
         <div className="shadow-side">
           <h4>Sombra</h4>
           <div className="shadow-grid">
-            {isShowingPattern && targetPattern.map((direction, index) => (
+            {isShowingPattern && displayedStep > 0 && (
               <div
-                key={index}
-                className={`shadow-position ${getPositionClass(direction)} ${
-                  index === currentStep ? 'active' : ''
-                }`}
-                style={{ animationDelay: `${index * 0.5}s` }}
+                className={`shadow-position ${getPositionClass(targetPattern[displayedStep - 1])} active`}
+                style={{ animationDelay: '0s' }}
               >
                 <div className="shadow-figure">👤</div>
               </div>
-            ))}
+            )}
             {!isShowingPattern && (
               <div className="shadow-hidden">
                 <span>???</span>

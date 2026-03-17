@@ -43,9 +43,15 @@ class RankingController extends Controller
         $ranking = Ranking::where('user_id', $userId)->first();
         
         if (!$ranking) {
+            // Return 200 with null ranking instead of 404
             return response()->json([
+                'rank' => null,
+                'username' => null,
+                'completion_time' => null,
+                'completed_at' => null,
+                'formatted_time' => null,
                 'message' => 'El usuario no ha completado el juego'
-            ], 404);
+            ], 200);
         }
         
         // Calculate rank

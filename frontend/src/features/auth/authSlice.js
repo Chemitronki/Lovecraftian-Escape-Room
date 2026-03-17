@@ -31,13 +31,20 @@ export const register = createAsyncThunk(
   'auth/register',
   async (userData, { rejectWithValue }) => {
     try {
+      // Clear old game session before registering
+      localStorage.removeItem('game_session');
+      
       const response = await axios.post(`${API_URL}/auth/register`, userData);
       
       const { user, token } = response.data;
       
+      console.log('Register response:', { user, token });
+      
       // Store token and user in localStorage
       localStorage.setItem('auth_token', token);
       localStorage.setItem('user', JSON.stringify(user));
+      
+      console.log('Token saved to localStorage:', localStorage.getItem('auth_token'));
       
       return { user, token };
     } catch (error) {
@@ -58,6 +65,9 @@ export const login = createAsyncThunk(
   'auth/login',
   async (credentials, { rejectWithValue }) => {
     try {
+      // Clear old game session before logging in
+      localStorage.removeItem('game_session');
+      
       const response = await axios.post(`${API_URL}/auth/login`, credentials);
       
       const { user, token } = response.data;

@@ -1,12 +1,10 @@
-import React, { useEffect, useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import React, { useState } from 'react';
+import { useSelector } from 'react-redux';
 import PropTypes from 'prop-types';
 import PuzzleContainer from './PuzzleContainer';
 import PuzzleFeedback from './PuzzleFeedback';
-import PuzzleLoading from './PuzzleLoading';
 import HintPanel from './HintPanel';
 import usePuzzleSubmit from '../../hooks/usePuzzleSubmit';
-import { getCurrentPuzzle } from '../../features/game/gameSlice';
 import {
   SymbolCipher,
   RitualPattern,
@@ -26,44 +24,30 @@ import './Puzzle.css';
  * Handles puzzle loading, submission, and feedback
  */
 const Puzzle = ({ puzzle, onComplete, disabled }) => {
-  const dispatch = useDispatch();
-  const { session, currentPuzzle, puzzleLoading, isActive } = useSelector((state) => state.game);
-  const puzzleToUse = puzzle || currentPuzzle;
+  const { session, isActive } = useSelector((state) => state.game);
   const { submitSolution, isSubmitting, feedback, clearFeedback } = usePuzzleSubmit(
-    puzzleToUse?.id,
+    puzzle?.id,
     session?.id
   );
   
   const [localSolution, setLocalSolution] = useState('');
-
-  useEffect(() => {
-    // Load current puzzle when component mounts or session changes
-    if (session?.id && isActive && !puzzle) {
-      dispatch(getCurrentPuzzle(session.id));
-    }
-  }, [dispatch, session?.id, isActive, puzzle]);
-
-  useEffect(() => {
-    // Reload puzzle when one is completed
-    if (feedback?.puzzleCompleted && !feedback?.allCompleted) {
-      const timer = setTimeout(() => {
-        if (onComplete) {
-          onComplete();
-        } else {
-          dispatch(getCurrentPuzzle(session.id));
-        }
-        clearFeedback();
-      }, 2000);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [feedback, dispatch, session?.id, clearFeedback, onComplete]);
+  const [showingFeedback, setShowingFeedback] = useState(false);
 
   const handleSubmit = async (solution) => {
     const result = await submitSolution(solution || localSolution);
     
     if (result.success && result.correct) {
       setLocalSolution('');
+      setShowingFeedback(true);
+      
+      // Call onComplete after showing feedback
+      setTimeout(() => {
+        setShowingFeedback(false);
+        clearFeedback();
+        if (onComplete) {
+          onComplete();
+        }
+      }, 2000);
     }
   };
 
@@ -79,15 +63,15 @@ const Puzzle = ({ puzzle, onComplete, disabled }) => {
       'forbidden_tome': ForbiddenTome,
       'shadow_reflection': ShadowReflection,
       'cultist_code': CultistCode,
-      'elder_sign_drawing': ElderSignDrawing,
+      'elder_sign': ElderSignDrawing,
     };
 
-    const PuzzleComponent = puzzleComponents[puzzleToUse.type];
+    const PuzzleComponent = puzzleComponents[puzzle.type];
     
     if (PuzzleComponent) {
       return (
         <PuzzleComponent
-          puzzleData={puzzleToUse}
+          puzzleData={puzzle}
           onSubmit={handleSubmit}
           disabled={isDisabled}
         />
@@ -97,7 +81,7 @@ const Puzzle = ({ puzzle, onComplete, disabled }) => {
     // Fallback for unknown puzzle types
     return (
       <div className="puzzle-type-placeholder">
-        <p className="puzzle-type-label">Tipo: {puzzleToUse.type}</p>
+        <p className="puzzle-type-label">Tipo: {puzzle.type}</p>
         <p className="puzzle-implementation-note">
           Tipo de puzzle no reconocido
         </p>
@@ -124,11 +108,7 @@ const Puzzle = ({ puzzle, onComplete, disabled }) => {
     );
   };
 
-  if (puzzleLoading) {
-    return <PuzzleLoading />;
-  }
-
-  if (!puzzleToUse) {
+  if (!puzzle) {
     return (
       <div className="no-puzzle">
         <p>No hay puzzle disponible</p>
@@ -136,20 +116,19 @@ const Puzzle = ({ puzzle, onComplete, disabled }) => {
     );
   }
 
-  const isDisabled = disabled || !isActive || isSubmitting;
+  const isDisabled = disabled || !isActive || isSubmitting || showingFeedback;
 
   const handleHintUsed = (hint) => {
     console.log('Hint used:', hint);
-    // You can add additional logic here, like tracking hints in analytics
   };
 
   return (
     <PuzzleContainer
-      title={puzzleToUse.title}
-      description={puzzleToUse.description}
+      title={puzzle.title}
+      description={puzzle.description}
       disabled={!isActive}
     >
-      {feedback && (
+      {feedback && showingFeedback && (
         <PuzzleFeedback
           isCorrect={feedback.isCorrect}
           message={feedback.message}
@@ -158,10 +137,10 @@ const Puzzle = ({ puzzle, onComplete, disabled }) => {
       )}
       
       {/* Hint Panel */}
-      {isActive && puzzleToUse && (
+      {isActive && puzzle && !showingFeedback && (
         <HintPanel
-          puzzleId={puzzleToUse.id}
-          timeSpent={puzzleToUse.time_spent || 0}
+          puzzleId={puzzle.id}
+          timeSpent={puzzle.time_spent || 0}
           onHintUsed={handleHintUsed}
         />
       )}

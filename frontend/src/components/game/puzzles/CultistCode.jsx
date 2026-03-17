@@ -17,6 +17,7 @@ const CultistCode = ({ puzzleData, onSubmit, disabled }) => {
   const [decodedMessage, setDecodedMessage] = useState('');
   const [substitutions, setSubstitutions] = useState({});
   const [selectedLetter, setSelectedLetter] = useState(null);
+  const [submitted, setSubmitted] = useState(false);
 
   // Calculate letter frequency
   const calculateFrequency = () => {
@@ -77,11 +78,13 @@ const CultistCode = ({ puzzleData, onSubmit, disabled }) => {
     setSubstitutions({});
     setDecodedMessage('');
     setSelectedLetter(null);
+    setSubmitted(false);
   };
 
   const handleSubmit = () => {
-    if (!disabled) {
-      onSubmit({ decoded: decodedMessage, substitutions });
+    if (!disabled && !submitted) {
+      setSubmitted(true);
+      onSubmit(decodedMessage);
     }
   };
 

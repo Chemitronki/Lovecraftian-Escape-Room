@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import './MemoryFragments.css';
 
@@ -14,11 +14,13 @@ const MemoryFragments = ({ puzzleData, onSubmit, disabled }) => {
   const totalPairs = solutionData?.pairs || 6;
   const images = solutionData?.images || [];
   
-  // Create card pairs
-  const cards = images.flatMap((image, index) => [
-    { pairId: index, icon: image === 'tentacle' ? '🐙' : image === 'eye' ? '👁️' : image === 'star' ? '⭐' : image === 'tome' ? '📖' : image === 'portal' ? '🌀' : image === 'cultist' ? '🧙' : image === 'monster' ? '👹' : '🔮' },
-    { pairId: index, icon: image === 'tentacle' ? '🐙' : image === 'eye' ? '👁️' : image === 'star' ? '⭐' : image === 'tome' ? '📖' : image === 'portal' ? '🌀' : image === 'cultist' ? '🧙' : image === 'monster' ? '👹' : '🔮' }
-  ]).sort(() => Math.random() - 0.5);
+  // Create card pairs - memoized so it only happens once
+  const cards = useMemo(() => {
+    return images.flatMap((image, index) => [
+      { pairId: index, icon: image === 'tentacle' ? '🐙' : image === 'eye' ? '👁️' : image === 'star' ? '⭐' : image === 'tome' ? '📖' : image === 'portal' ? '🌀' : image === 'cultist' ? '🧙' : image === 'monster' ? '👹' : '🔮' },
+      { pairId: index, icon: image === 'tentacle' ? '🐙' : image === 'eye' ? '👁️' : image === 'star' ? '⭐' : image === 'tome' ? '📖' : image === 'portal' ? '🌀' : image === 'cultist' ? '🧙' : image === 'monster' ? '👹' : '🔮' }
+    ]).sort(() => Math.random() - 0.5);
+  }, [images]);
   
   const [flippedCards, setFlippedCards] = useState([]);
   const [matchedPairs, setMatchedPairs] = useState([]);
@@ -49,14 +51,17 @@ const MemoryFragments = ({ puzzleData, onSubmit, disabled }) => {
     }
   }, [flippedCards, cards, matchedPairs]);
 
+  const [submitted, setSubmitted] = useState(false);
+
   useEffect(() => {
-    // Auto-submit when all pairs are matched
-    if (matchedPairs.length === totalPairs && matchedPairs.length > 0) {
+    // Auto-submit when all pairs are matched (only once)
+    if (matchedPairs.length === totalPairs && matchedPairs.length > 0 && !submitted) {
+      setSubmitted(true);
       setTimeout(() => {
-        onSubmit({ completed_pairs: totalPairs });
+        onSubmit(true);
       }, 500);
     }
-  }, [matchedPairs, totalPairs, onSubmit]);
+  }, [matchedPairs, totalPairs, onSubmit, submitted]);
 
   const handleCardClick = (index) => {
     if (disabled || isChecking || flippedCards.length >= 2) return;

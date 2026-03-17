@@ -41,12 +41,13 @@
   width: 200px;
   height: 200px;
   margin: 0 auto;
-  background: rgba(0, 0, 0, 0.3);
-  border: 2px solid #5a189a;
+  background: linear-gradient(135deg, rgba(0, 0, 0, 0.6) 0%, rgba(90, 24, 154, 0.3) 100%);
+  border: 3px solid #9d4edd;
   border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow: 0 0 20px rgba(157, 78, 221, 0.4) inset;
 }
 
 .shadow-position,
@@ -57,12 +58,13 @@
 }
 
 .shadow-position.active {
-  animation: shadowPulse 0.5s ease-in-out;
+  animation: shadowPulse 1.5s ease-in-out;
 }
 
 @keyframes shadowPulse {
-  0%, 100% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.2); opacity: 0.7; }
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.5); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
 }
 
 .pos-center {
@@ -97,7 +99,10 @@
 
 .shadow-figure {
   filter: drop-shadow(0 0 10px rgba(157, 78, 221, 0.8));
-  opacity: 0.7;
+  opacity: 1;
+  font-size: 2.5rem;
+  font-weight: bold;
+  text-shadow: 0 0 15px rgba(157, 78, 221, 1);
 }
 
 .player-figure {
@@ -106,8 +111,10 @@
 
 .shadow-hidden {
   font-size: 3rem;
-  color: #5a189a;
-  opacity: 0.5;
+  color: #9d4edd;
+  opacity: 0.8;
+  font-weight: bold;
+  text-shadow: 0 0 10px rgba(157, 78, 221, 0.6);
 }
 
 .mirror-line {

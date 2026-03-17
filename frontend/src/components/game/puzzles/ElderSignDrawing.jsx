@@ -13,13 +13,14 @@ const ElderSignDrawing = ({ puzzleData, onSubmit, disabled }) => {
   const [path, setPath] = useState([]);
   const [accuracy, setAccuracy] = useState(0);
   const [hasLifted, setHasLifted] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
 
   const solutionData = typeof puzzleData?.solution_data === 'string' 
     ? JSON.parse(puzzleData.solution_data) 
     : puzzleData?.solution_data || {};
   
   const targetPattern = solutionData?.points || [];
-  const tolerance = solutionData?.tolerance || 20;
+  const tolerance = solutionData?.tolerance || 50; // Increased from 20 to 50
 
   useEffect(() => {
     // Draw the target pattern on overlay canvas
@@ -90,25 +91,35 @@ const ElderSignDrawing = ({ puzzleData, onSubmit, disabled }) => {
   const calculateAccuracy = (userPath) => {
     if (targetPattern.length === 0 || userPath.length === 0) return 0;
 
-    let matchedPoints = 0;
-    const step = Math.max(1, Math.floor(userPath.length / targetPattern.length));
+    // For each point in the target pattern, find the closest point in the user path
+    let totalDistance = 0;
+    const maxDistance = 150; // Maximum acceptable distance
 
     for (let i = 0; i < targetPattern.length; i++) {
       const targetPoint = targetPattern[i];
-      const userIndex = Math.min(i * step, userPath.length - 1);
-      const userPoint = userPath[userIndex];
+      let minDistance = maxDistance;
 
-      const distance = Math.sqrt(
-        Math.pow(targetPoint.x - userPoint.x, 2) +
-        Math.pow(targetPoint.y - userPoint.y, 2)
-      );
-
-      if (distance <= tolerance) {
-        matchedPoints++;
+      // Find the closest point in user path to this target point
+      for (let j = 0; j < userPath.length; j++) {
+        const userPoint = userPath[j];
+        const distance = Math.sqrt(
+          Math.pow(targetPoint.x - userPoint.x, 2) +
+          Math.pow(targetPoint.y - userPoint.y, 2)
+        );
+        
+        if (distance < minDistance) {
+          minDistance = distance;
+        }
       }
+
+      totalDistance += minDistance;
     }
 
-    return Math.round((matchedPoints / targetPattern.length) * 100);
+    // Calculate accuracy based on average distance
+    const averageDistance = totalDistance / targetPattern.length;
+    const accuracy = Math.max(0, 100 - (averageDistance * 2)); // More lenient calculation
+
+    return Math.round(Math.min(100, accuracy));
   };
 
   const drawPath = (ctx, pathToDraw) => {
@@ -161,12 +172,16 @@ const ElderSignDrawing = ({ puzzleData, onSubmit, disabled }) => {
 
     setIsDrawing(false);
     
-    if (path.length > 10) {
+    // Only mark as lifted if path is too short (didn't complete the pattern)
+    if (path.length < 20) {
       setHasLifted(true);
-      const finalAccuracy = calculateAccuracy(path);
-      setAccuracy(finalAccuracy);
+    }
+    
+    const finalAccuracy = calculateAccuracy(path);
+    setAccuracy(finalAccuracy);
 
-      // Redraw with error color if lifted
+    // Redraw with error color if lifted
+    if (path.length < 20) {
       const canvas = canvasRef.current;
       const ctx = canvas.getContext('2d');
       ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -218,19 +233,17 @@ const ElderSignDrawing = ({ puzzleData, onSubmit, disabled }) => {
     setAccuracy(0);
     setIsDrawing(false);
     setHasLifted(false);
+    setSubmitted(false);
   };
 
   const handleSubmit = () => {
-    if (!disabled && path.length > 0) {
-      onSubmit({
-        path,
-        accuracy,
-        completed_without_lifting: !hasLifted,
-      });
+    if (!disabled && path.length > 0 && !submitted) {
+      setSubmitted(true);
+      onSubmit(true); // Send true instead of object
     }
   };
 
-  const canSubmit = accuracy >= 70 && !hasLifted && path.length > 10;
+  const canSubmit = accuracy >= 70 && path.length > 20;
 
   return (
     <div className="elder-sign-drawing">
@@ -319,7 +332,7 @@ const ElderSignDrawing = ({ puzzleData, onSubmit, disabled }) => {
 
       {!canSubmit && path.length > 0 && (
         <div className="hint-message">
-          💡 Necesitas al menos 70% de precisión y no levantar el cursor
+          💡 Necesitas al menos 70% de precisión y un trazo completo
         </div>
       )}
     </div>

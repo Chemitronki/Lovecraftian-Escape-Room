@@ -110,6 +110,9 @@ const RegisterForm = () => {
       return;
     }
     
+    // Clear old game session from localStorage before registering
+    localStorage.removeItem('game_session');
+    
     dispatch(register(formData));
   };
 
